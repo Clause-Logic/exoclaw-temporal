@@ -148,7 +148,7 @@ For production: workers as a Deployment, workspace state on a shared PVC (EFS/NF
 # Create a 3-node kind cluster (1 control plane + 2 workers)
 mise run cluster-up
 
-# Install Temporal via Helm
+# Deploy Temporal (postgres + schema setup + server + UI)
 mise run temporal-up
 
 # Build and deploy workers (2 replicas across 2 nodes)
@@ -159,6 +159,8 @@ mise run bounce-demo
 ```
 
 The bounce demo submits a turn with a slow shell command, kills one worker pod, and shows the activity resuming on the surviving worker.
+
+**Note on shared storage:** The PVC requests `ReadWriteMany` — required so both worker replicas can share the workspace. In kind, the default `local-path` provisioner only supports `ReadWriteOnce`. For multi-node kind testing, install an NFS provisioner or run with a single worker replica. In production (EKS, GKE), use EFS or a similar RWX-capable storage class.
 
 ## Architecture
 
