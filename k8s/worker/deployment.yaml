@@ -22,8 +22,8 @@ spec:
         - name: worker
           image: exoclaw-temporal-worker:local
           imagePullPolicy: Never  # loaded via kind load docker-image
-          command: ["python", "-m", "exoclaw_temporal.turn_based", "--worker"]
-          args: ["--temporal-url", "temporal-frontend.temporal.svc.cluster.local:7233"]
+          command: ["uv", "run", "python", "-m", "exoclaw_temporal.turn_based", "--worker",
+                    "--temporal-url", "temporal-frontend.temporal.svc.cluster.local:7233"]
           env:
             - name: ANTHROPIC_API_KEY
               valueFrom:
