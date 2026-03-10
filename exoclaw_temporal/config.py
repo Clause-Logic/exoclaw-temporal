@@ -37,6 +37,7 @@ class WorkspaceConfig:
     web_search_api_key: str = ""
     web_search_max_results: int = 5
     web_proxy: str | None = None
+    sandbox_exec: bool = False  # route exec tool calls to agent-sandbox pods
 
 
 @dataclass

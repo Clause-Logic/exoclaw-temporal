@@ -35,17 +35,23 @@ def _build_registry(ws_cfg: WorkspaceConfig) -> ToolRegistry:
     workspace.mkdir(parents=True, exist_ok=True)
     allowed_dir = workspace if ws_cfg.restrict_to_workspace else None
 
+    if ws_cfg.sandbox_exec:
+        from exoclaw_temporal.sandbox_exec import SandboxExecTool
+        exec_tool = SandboxExecTool()
+    else:
+        exec_tool = ExecTool(
+            timeout=ws_cfg.exec_timeout,
+            working_dir=str(workspace),
+            restrict_to_workspace=ws_cfg.restrict_to_workspace,
+            path_append=ws_cfg.exec_path_append,
+        )
+
     tools = [
         ReadFileTool(workspace=workspace, allowed_dir=allowed_dir),
         WriteFileTool(workspace=workspace, allowed_dir=allowed_dir),
         EditFileTool(workspace=workspace, allowed_dir=allowed_dir),
         ListDirTool(workspace=workspace, allowed_dir=allowed_dir),
-        ExecTool(
-            timeout=ws_cfg.exec_timeout,
-            working_dir=str(workspace),
-            restrict_to_workspace=ws_cfg.restrict_to_workspace,
-            path_append=ws_cfg.exec_path_append,
-        ),
+        exec_tool,
         WebSearchTool(
             api_key=ws_cfg.web_search_api_key,
             max_results=ws_cfg.web_search_max_results,

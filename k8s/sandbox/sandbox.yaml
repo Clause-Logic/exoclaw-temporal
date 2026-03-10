@@ -1,0 +1,122 @@
+# SandboxTemplate: defines the pod spec for tenant sandbox pods.
+# Each agent session gets its own Sandbox CR created from this template.
+# No gVisor in kind — use runtimeClassName: gvisor in production.
+apiVersion: extensions.agents.x-k8s.io/v1alpha1
+kind: SandboxTemplate
+metadata:
+  name: exoclaw-sandbox
+  namespace: default
+spec:
+  podTemplate:
+    spec:
+      containers:
+        - name: sandbox-runtime
+          image: sandbox-runtime:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8888
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8888
+            initialDelaySeconds: 0
+            periodSeconds: 1
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8888
+            initialDelaySeconds: 2
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
+      nodeSelector:
+        kubernetes.io/hostname: exoclaw-temporal-worker
+---
+# Sandbox router: routes requests to sandbox pods by sandbox name header.
+# Workers inside the cluster can skip this and use K8s DNS directly:
+#   http://<sandbox-name>.default.svc.cluster.local:8888
+# The router is useful for external access (local dev, tests from outside cluster).
+apiVersion: v1
+kind: Service
+metadata:
+  name: sandbox-router-svc
+  namespace: default
+spec:
+  type: ClusterIP
+  selector:
+    app: sandbox-router
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sandbox-router
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sandbox-router
+  template:
+    metadata:
+      labels:
+        app: sandbox-router
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: exoclaw-temporal-worker
+      containers:
+        - name: router
+          image: sandbox-router:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+---
+# RBAC for the worker: needs to create/get/delete Sandbox CRs.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: exoclaw-worker
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: exoclaw-sandbox-manager
+rules:
+  - apiGroups: ["agents.x-k8s.io"]
+    resources: ["sandboxes"]
+    verbs: ["get", "list", "create", "delete", "watch"]
+  - apiGroups: ["extensions.agents.x-k8s.io"]
+    resources: ["sandboxtemplates", "sandboxclaims"]
+    verbs: ["get", "list", "create", "delete", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: exoclaw-sandbox-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: exoclaw-sandbox-manager
+subjects:
+  - kind: ServiceAccount
+    name: exoclaw-worker
+    namespace: default
