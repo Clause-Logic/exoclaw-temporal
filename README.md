@@ -36,6 +36,47 @@ This means:
 - **Full observability.** Every activity, every retry, every input and output is in Temporal's history. You can see exactly what your agent did and replay it.
 - **Long-running tasks work.** Shell commands that take minutes, web crawls, subagent spawns — they heartbeat to Temporal so nothing times out prematurely.
 
+## How exoclaw's design made this possible
+
+Most agent frameworks are monoliths. The LLM call, tool execution, memory management, and response delivery are tangled together in a single run loop. To add durability you'd have to wrap the entire loop as one giant unit of work — all-or-nothing. If it fails, you restart from the beginning.
+
+exoclaw is different. Its architecture has five protocols and one loop:
+
+```
+InboundMessage → Bus → AgentLoop → LLM → Tools → Bus → OutboundMessage → Channel
+```
+
+Every noun is a protocol. More importantly, there's a sixth protocol that controls *how* the loop performs I/O — the **`Executor`**:
+
+```python
+class Executor(Protocol):
+    async def chat(self, provider, *, messages, tools, ...) -> LLMResponse: ...
+    async def execute_tool(self, registry, name, params, ctx) -> str: ...
+    async def build_prompt(self, conversation, session_id, message, ...) -> list[dict]: ...
+    async def record(self, conversation, session_id, new_messages) -> None: ...
+    async def clear(self, conversation, session_id) -> bool: ...
+    async def run_hook(self, fn, /, *args, **kwargs) -> object: ...
+```
+
+One method per operation. Each one independently swappable.
+
+The default `DirectExecutor` calls everything inline. But swap in a different executor and each operation can have a completely different execution strategy — different timeouts, retries, or execution environments — without changing a single tool, channel, or provider.
+
+That's the exact hook this repo uses. `AgentTurnWorkflow` is the agent loop rewritten as a Temporal workflow, where each operation is a Temporal activity:
+
+| Executor method | Temporal activity | What it means |
+|---|---|---|
+| `build_prompt` | `build_prompt_activity` | Load history from shared volume, construct prompt |
+| `chat` | `llm_chat_activity` | LLM call with retry on transient failure |
+| `execute_tool` | `execute_tool_activity` | Tool call with heartbeat — survives worker death |
+| `record` | `record_turn_activity` | Persist new messages to shared volume |
+
+Because the Executor protocol decomposes the loop into discrete named operations with clean inputs and outputs, every step maps directly to a Temporal activity. There's no hidden state to worry about, no tangled callbacks to untangle. The decomposition was already done.
+
+The other property that made this work is that exoclaw has **no framework-level in-memory state**. Conversation history lives in JSONL files. Tool state lives in files. The LLM provider is stateless. The only thing that needs to survive a worker death is the messages list — and that lives in Temporal's workflow history. Any worker that mounts the shared volume can pick up any activity.
+
+If exoclaw had been a traditional framework — batteries included, everything wired together, shared in-process state — none of this would be possible without a complete rewrite. The protocol design is what unlocks it.
+
 ## Two approaches
 
 ### `turn_based/` — one workflow per message turn
