@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from temporalio import activity
 
-from exoclaw_provider_litellm import LiteLLMProvider
+from exoclaw_provider_litellm.provider import LiteLLMProvider
 from exoclaw_temporal.config import LLMChatInput, LLMResponseData, ToolCallData
 
 

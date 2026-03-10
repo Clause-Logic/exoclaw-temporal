@@ -21,15 +21,9 @@ from exoclaw_temporal.turn_based.workflows.agent_turn import AgentTurnWorkflow
 
 def _build_tool_registry(config: Config) -> ToolRegistry:
     """Build the tool registry from nanobot config (same tools as nanobot)."""
-    from exoclaw_tools_workspace import (
-        EditFileTool,
-        ExecTool,
-        ListDirTool,
-        ReadFileTool,
-        WebFetchTool,
-        WebSearchTool,
-        WriteFileTool,
-    )
+    from exoclaw_tools_workspace.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+    from exoclaw_tools_workspace.shell import ExecTool
+    from exoclaw_tools_workspace.web import WebFetchTool, WebSearchTool
     from exoclaw_tools_cron import CronService, CronTool
 
     workspace = config.workspace_path

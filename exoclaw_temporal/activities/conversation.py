@@ -8,11 +8,12 @@ worker pod can read/write them.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from temporalio import activity
 
-from exoclaw_conversation import DefaultConversation
-from exoclaw_provider_litellm import LiteLLMProvider
+from exoclaw_conversation.conversation import DefaultConversation
+from exoclaw_provider_litellm.provider import LiteLLMProvider
 from exoclaw_temporal.config import BuildPromptInput, LLMConfig, RecordTurnInput, WorkspaceConfig
 
 
@@ -32,7 +33,7 @@ def _build_conversation(llm: LLMConfig, ws: WorkspaceConfig) -> DefaultConversat
 
 
 @activity.defn
-async def build_prompt(input: BuildPromptInput) -> list[dict[str, object]]:
+async def build_prompt(input: BuildPromptInput) -> list[dict[str, Any]]:
     """Build the full messages list for this turn (system prompt + history + user message)."""
     conv = _build_conversation(input.llm, input.workspace)
     result = await conv.build_prompt(

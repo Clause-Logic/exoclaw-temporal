@@ -26,6 +26,7 @@ from temporalio import workflow
 from temporalio.common import RetryPolicy
 
 with workflow.unsafe.imports_passed_through():
+    from typing import Any
     from exoclaw_temporal.activities.conversation import build_prompt, record_turn
     from exoclaw_temporal.activities.llm import llm_chat
     from exoclaw_temporal.activities.tools import execute_tool
@@ -144,7 +145,7 @@ class AgentSessionWorkflow:
 
     async def _run_turn(self, input: SessionInput, msg: PendingMessage) -> TurnOutput:
         """Run one agent turn inside the session workflow."""
-        messages: list[dict[str, object]] = await workflow.execute_activity(
+        messages: list[dict[str, Any]] = await workflow.execute_activity(
             build_prompt,
             BuildPromptInput(
                 session_id=input.session_id,
@@ -199,7 +200,7 @@ class AgentSessionWorkflow:
                     ]
             else:
                 final_content = response.content
-                msg_dict: dict[str, object] = {"role": "assistant", "content": final_content}
+                msg_dict: dict[str, Any] = {"role": "assistant", "content": final_content}
                 if response.reasoning_content is not None:
                     msg_dict["reasoning_content"] = response.reasoning_content
                 if response.thinking_blocks:

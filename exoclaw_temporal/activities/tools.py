@@ -27,15 +27,9 @@ def _build_registry(ws_cfg: WorkspaceConfig) -> ToolRegistry:
     the serialized WorkspaceConfig. State lives in the filesystem (PVC/S3),
     not in memory.
     """
-    from exoclaw_tools_workspace import (
-        EditFileTool,
-        ExecTool,
-        ListDirTool,
-        ReadFileTool,
-        WebFetchTool,
-        WebSearchTool,
-        WriteFileTool,
-    )
+    from exoclaw_tools_workspace.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
+    from exoclaw_tools_workspace.shell import ExecTool
+    from exoclaw_tools_workspace.web import WebFetchTool, WebSearchTool
 
     workspace = Path(ws_cfg.path)
     workspace.mkdir(parents=True, exist_ok=True)

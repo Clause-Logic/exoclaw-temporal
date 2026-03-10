@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -54,7 +55,7 @@ class TurnInput:
     plugin_context: list[str] | None = None
     media: list[str] | None = None
 
-    def tool_definitions(self) -> list[dict[str, object]]:
+    def tool_definitions(self) -> list[dict[str, Any]]:
         result = json.loads(self.tool_definitions_json)
         if not isinstance(result, list):
             return []
@@ -81,7 +82,7 @@ class SessionInput:
     tool_definitions_json: str = "[]"
     turn_count: int = 0
 
-    def tool_definitions(self) -> list[dict[str, object]]:
+    def tool_definitions(self) -> list[dict[str, Any]]:
         result = json.loads(self.tool_definitions_json)
         if not isinstance(result, list):
             return []
@@ -105,11 +106,11 @@ class BuildPromptInput:
 
 @dataclass
 class LLMChatInput:
-    messages: list[dict[str, object]]
+    messages: list[dict[str, Any]]
     llm: LLMConfig
     tool_definitions_json: str = "[]"
 
-    def tool_definitions(self) -> list[dict[str, object]]:
+    def tool_definitions(self) -> list[dict[str, Any]]:
         result = json.loads(self.tool_definitions_json)
         if not isinstance(result, list):
             return []
@@ -120,7 +121,7 @@ class LLMChatInput:
 class ToolCallData:
     id: str
     name: str
-    arguments: dict[str, object]
+    arguments: dict[str, Any]
 
 
 @dataclass
@@ -132,10 +133,10 @@ class LLMResponseData:
     has_tool_calls: bool
     tool_calls: list[ToolCallData]
     reasoning_content: str | None = None
-    thinking_blocks: list[dict[str, object]] | None = None
+    thinking_blocks: list[dict[str, Any]] | None = None
 
-    def to_assistant_message(self) -> dict[str, object]:
-        msg: dict[str, object] = {"role": "assistant", "content": self.content}
+    def to_assistant_message(self) -> dict[str, Any]:
+        msg: dict[str, Any] = {"role": "assistant", "content": self.content}
         if self.tool_calls:
             msg["tool_calls"] = [
                 {
@@ -158,7 +159,7 @@ class LLMResponseData:
 @dataclass
 class ExecuteToolInput:
     name: str
-    params: dict[str, object]
+    params: dict[str, Any]
     session_id: str
     channel: str
     chat_id: str
@@ -168,6 +169,6 @@ class ExecuteToolInput:
 @dataclass
 class RecordTurnInput:
     session_id: str
-    new_messages: list[dict[str, object]]
+    new_messages: list[dict[str, Any]]
     llm: LLMConfig
     workspace: WorkspaceConfig
